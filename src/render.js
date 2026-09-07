@@ -11,14 +11,25 @@ scene.background=new THREE.Color(0x86c8ea);
 scene.fog=new THREE.FogExp2(0x77abc1,0.00135);
 // sky gradient backdrop + sun + clouds (spans whole level, z=-360..-375)
 const skyGroup=new THREE.Group(); scene.add(skyGroup);
-let skyBackdrop=null, sunDisc=null, sunHalo=null, cloudMat=null;
+let skyBackdrop=null, sunDisc=null, sunHalo=null, cloudMat=null, skyCanvas=null, skyContext=null, skyTexture=null;
+const SKY_GRADIENTS=[
+  [[0,'#0b376f'],[0.40,'#2f92cb'],[0.75,'#91d9e8'],[1,'#e7f6e8']],
+  [[0,'#173f4b'],[0.40,'#377c79'],[0.75,'#8eada0'],[1,'#e4c18c']],
+  [[0,'#20262e'],[0.40,'#3c4853'],[0.75,'#776d68'],[1,'#c4865e']],
+];
+function paintSkyGradient(stage){
+  if(!skyCanvas||!skyContext)return;
+  const stops=SKY_GRADIENTS[stage]||SKY_GRADIENTS[0];
+  const gr=skyContext.createLinearGradient(0,0,0,skyCanvas.height);
+  for(const [at,color] of stops)gr.addColorStop(at,color);
+  skyContext.fillStyle=gr; skyContext.fillRect(0,0,skyCanvas.width,skyCanvas.height);
+  if(skyTexture)skyTexture.needsUpdate=true;
+}
 {
-  const cv=document.createElement('canvas'); cv.width=32; cv.height=256; const g2=cv.getContext('2d');
-  const gr=g2.createLinearGradient(0,0,0,256);
-  gr.addColorStop(0,'#0a2a6a'); gr.addColorStop(0.4,'#3cbcfc'); gr.addColorStop(0.75,'#a4e4fc'); gr.addColorStop(1,'#dcf2ff');
-  g2.fillStyle=gr; g2.fillRect(0,0,32,256);
-  const skyTex=new THREE.CanvasTexture(cv);
-  skyBackdrop=new THREE.Mesh(new THREE.PlaneGeometry(2600,430),new THREE.MeshBasicMaterial({map:skyTex,color:0xffffff,fog:false}));
+  skyCanvas=document.createElement('canvas'); skyCanvas.width=32; skyCanvas.height=256; skyContext=skyCanvas.getContext('2d');
+  paintSkyGradient(0);
+  skyTexture=new THREE.CanvasTexture(skyCanvas);
+  skyBackdrop=new THREE.Mesh(new THREE.PlaneGeometry(2600,430),new THREE.MeshBasicMaterial({map:skyTexture,color:0xffffff,fog:false}));
   skyBackdrop.position.set(1056,120,-375); skyGroup.add(skyBackdrop);
   sunDisc=new THREE.Mesh(new THREE.SphereGeometry(17,16,12),new THREE.MeshBasicMaterial({color:0xfff4c0,fog:false}));
   sunDisc.position.set(1780,235,-370); skyGroup.add(sunDisc);
