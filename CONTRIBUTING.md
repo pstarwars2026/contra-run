@@ -31,7 +31,7 @@ The existing browser suites cover the main campaign path. Extend them when a bug
 
 ## Code organization
 
-The current release still contains most gameplay in `index.html`. Refactors are welcome, but keep structural moves separate from gameplay changes when practical so behavior regressions are easy to identify.
+Browser runtime code lives in `src/` and is split by subsystem. `index.html` loads those files in dependency order as classic scripts so the game can still be opened directly from disk. Keep structural moves separate from gameplay changes when practical, and preserve the script load order unless a refactor intentionally changes those dependencies.
 
 ## Third-party code and assets
 

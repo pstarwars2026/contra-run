@@ -86,11 +86,16 @@ The tests build the game URL from the repository path, so they work from any clo
 
 ```text
 index.html
-  ├─ gameplay state + fixed-step simulation
-  ├─ input manager + touch adapter
-  ├─ level, enemies, weapons, bosses, particles
-  ├─ Web Audio music + sound effects
-  └─ Three.js scene synchronization
+  └─ page markup + ordered runtime scripts
+
+src/
+  ├─ styles.css    presentation + touch controls
+  ├─ core.js       Three.js aliases + gameplay tuning
+  ├─ input.js      keyboard/touch input lifecycle
+  ├─ audio.js      Web Audio music + sound effects
+  ├─ gameplay.js   level, player, enemies, weapons, boss
+  ├─ render.js     Three.js world + render synchronization
+  └─ main.js       fixed-step loop + browser test API
 
 entry.js
   └─ imports Three.js + post-processing modules
@@ -102,7 +107,7 @@ test_*.js
   └─ Playwright regression suites against the real browser game
 ```
 
-Most gameplay still lives in `index.html`. That keeps the current release easy to run as a single page, while the tests protect behavior as the code is gradually split into smaller modules.
+The runtime scripts are loaded in dependency order as classic browser scripts. That keeps direct `file://` play working without a local server or application bundler while making each subsystem easier to review and change.
 
 ## Input reliability
 
@@ -125,7 +130,8 @@ These behaviors have dedicated regression tests because they are easy to break w
 │   ├── images/                   # README screenshots
 │   └── licenses/                 # third-party license copies
 ├── lib/                          # vendored Three.js r161 + browser bundle
-├── index.html                    # game runtime and presentation
+├── src/                          # runtime code split by subsystem
+├── index.html                    # page shell + runtime script loading
 ├── entry.js                      # Three.js bundle entry point
 ├── test_input.js                 # control lifecycle regressions
 ├── e2e_game.js                   # full gameplay E2E suite
