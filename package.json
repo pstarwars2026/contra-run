@@ -1,11 +1,17 @@
 {
-  "dependencies": {
-    "playwright": "^1.63.0"
+  "name": "contra-run",
+  "version": "1.1.0",
+  "description": "A browser-based 2.5D run-and-gun game built with Three.js.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "playwright": "^1.63.0"
   },
   "scripts": {
+    "build:three": "esbuild entry.js --bundle --format=iife --outfile=lib/bundle-three.js",
     "test": "node test_input.js && node e2e_game.js && node test_campaign.js && node test_audio.js",
     "test:input": "node test_input.js",
     "test:e2e": "node e2e_game.js",

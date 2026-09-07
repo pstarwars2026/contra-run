@@ -1,6 +1,11 @@
 node_modules/
+dist/
+coverage/
 .DS_Store
+._*
 *.log
+.env*
+!.env.example
+.npm-cache/
 playwright-report/
 test-results/
-
