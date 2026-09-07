@@ -169,7 +169,7 @@ const { GAME_URL } = require('./test_helpers');
   // boss
   await A(`(() => { const a = window.__api; const p = a.player; p.inWater = false; p.x = 1860; p.y = 100; p.invuln = 99999; })()`);
   await page.waitForFunction(() => window.__api.boss.active && window.__api.camX > 1700, null, { timeout: 5000 });
-  const bs = await A(`(() => { const a = window.__api; return { active: a.boss.active, camX: Math.round(a.camX), warn: a.game.warnT > 0 }; })()`);
+  const bs = await A(`(() => { const a = window.__api; return { active: a.boss.active, camX: a.camX, warn: a.game.warnT > 0 }; })()`);
   check('boss activates + camera follows', bs.active && bs.camX > 1700 && bs.warn, JSON.stringify(bs));
 
   const c0 = await A(`(() => { const a = window.__api; const c0 = a.boss.core.hp;

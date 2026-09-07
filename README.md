@@ -18,7 +18,7 @@
 
 ![ContraRun Zone 1 gameplay](docs/images/gameplay-zone-1.png)
 
-![Pause panel with independent music volume](docs/images/pause-and-music.png)
+![Pause panel with saved music volume and reduced screen effects](docs/images/pause-and-music.png)
 
 ContraRun is a self-contained arcade game inspired by classic run-and-gun pacing, rebuilt as an original browser game with a Three.js 2.5D presentation. Run, jump, dash, collect weapons, cross collapsing terrain, swim, fight through three zones, and defeat each zone boss.
 
@@ -26,13 +26,15 @@ The game intentionally stays lightweight: there is no account, backend, ad SDK, 
 
 ## Highlights
 
+- Proportion-correct playfield in portrait and landscape, preserving the complete view without stretching characters or cropping hazards.
 - Three distinct campaign zones with different terrain, atmosphere, enemies, and original MIDI-note music.
 - Keyboard, mouse, and touch controls using one shared multi-source input-state system.
 - Buffered jump, fire, and dash inputs so very short taps are not lost between simulation frames.
 - Control + Space chord recovery, independent action presses across mouse and keyboard, and visible held-button feedback.
-- Automatic pause when switching tabs/apps, on-screen Pause/Mute controls, and independent music volume.
-- Weapon pickups, enemy variants, destructible bridge sections, swimming, checkpoints, bosses, and New Game+.
-- Original MIDI-note arrangements rendered through soft Web Audio voices, plus procedural sound effects; no recorded soundtrack files are required.
+- Automatic pause when switching tabs/apps; pause freezes the world, camera effects, and message timers. Music volume, mute, and reduced screen effects are saved on the browser.
+- Safe, zone-specific checkpoints marked with flags; campaign scores and earned extra lives carry between zones and into New Game+.
+- Weapon pickups, enemy variants, collapsing bridges, swimming, outlined hostile shots, a visible dash cooldown, and boss fights.
+- Original MIDI-note music with a melody, bell response, quiet interlude, and return, rendered through soft Web Audio voices. No soundtrack downloads are required.
 - Portable Playwright regression coverage for controls, traversal, combat, campaign progression, touch, and audio state.
 
 ## Play
@@ -59,11 +61,16 @@ The on-screen direction, Fire, Jump, and Dash buttons also work with a desktop m
 | Pause / resume | P or Esc | Pause / Resume button |
 | Mute all audio | M | Mute / Unmute button |
 | Music volume | Pause, then adjust the slider | Music slider in the pause panel |
+| Reduce screen effects | Pause, then toggle the checkbox | Reduced-effects checkbox in the pause panel |
 | Start / continue | Enter | Tap the game overlay |
 
 Hold **Control** to fire and press **Space** to jump, in either order. You can also hold an on-screen action with the mouse and press a keyboard action at the same time. A new Space press still requests a jump while the mouse holds Jump; holding Jump alone does not repeatedly jump after landing.
 
-The game automatically pauses when its window loses focus or its tab becomes hidden. Return and explicitly resume with **P**, **Esc**, or **Resume**; active controls are cleared to prevent unwanted movement. Music starts at 65% of the arrangement's mix level. The pause-panel slider changes only music, including percussion; 0% retains sound effects. Mute silences everything. Volume is a per-session setting.
+The game automatically pauses when its window loses focus or its tab becomes hidden. Return and explicitly resume with **P**, **Esc**, or **Resume**; active controls are cleared to prevent unwanted movement. Music starts at 65% of the arrangement's mix level. The pause-panel slider changes only music, including percussion; 0% retains sound effects. Mute silences everything. Volume, mute, and reduced screen effects are remembered on this browser when storage is available. Reduced effects defaults to the system reduced-motion preference and suppresses camera shake and player flashing. The game still runs when browser storage is blocked.
+
+Holding **Up** while jumping fires straight up; add Left or Right to aim diagonally. Checkpoint flags brighten after you pass them and land. Respawns use permanent ground with room around the player, rather than a bridge that may have collapsed.
+
+Your score and earned extra lives carry through the campaign and New Game+. Each cleared zone replenishes lives to at least three; earned lives above that are kept. Continuing after Game Over starts a fresh score in the current zone. Saved preferences do not save campaign progress between browser sessions.
 
 ## Development
 
@@ -90,7 +97,8 @@ npm run build:three
 | `npm run test:e2e` | Movement, combat, pickups, bridge, swimming, boss flow, victory, New Game+ |
 | `npm run test:campaign` | Touch start/movement and progression through all three campaign zones |
 | `npm run test:audio` | Title/stage/boss themes, real AudioContext pause/mute interactions, and independent music level |
-| `npm test` | Runs the full suite |
+| `npm run test:polish` | Safe respawns, airborne aim, pause clocks, projectile lifetimes, campaign totals, mixed dash inputs, saved preferences, reduced effects, and rendered audio |
+| `npm test` | Runs all six suites |
 
 The tests build the game URL from the repository path, so they work from any clone instead of depending on one developer's filesystem.
 
@@ -104,7 +112,7 @@ index.html
 
 src/
   ├─ styles.css    presentation + touch controls
-  ├─ core.js       Three.js aliases + gameplay tuning
+  ├─ core.js       Three.js aliases + tuning + saved preferences
   ├─ input.js      keyboard/mouse/touch input lifecycle
   ├─ audio.js      Web Audio music + sound effects
   ├─ gameplay.js   level, player, enemies, weapons, boss
@@ -156,6 +164,7 @@ These behaviors have dedicated regression tests because they are easy to break w
 ├── e2e_game.js                   # full gameplay E2E suite
 ├── test_campaign.js              # touch + campaign progression
 ├── test_audio.js                 # music/audio state checks
+├── test_polish.js                # gameplay fairness, preferences, rendered audio
 └── package.json
 ```
 

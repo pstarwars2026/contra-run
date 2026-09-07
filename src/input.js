@@ -179,6 +179,7 @@ document.getElementById('pauseButton').addEventListener('click',()=>setPaused(!p
 document.getElementById('resumeButton').addEventListener('click',()=>setPaused(false));
 document.getElementById('muteButton').addEventListener('click',()=>{audio();Music.toggleMute();});
 document.getElementById('musicVolume').addEventListener('input',e=>Music.setVolume(Number(e.target.value)/100));
+document.getElementById('reducedEffects').addEventListener('change',e=>{preferences.reducedEffects=e.target.checked;savePreferences();});
 // Mouse/touch utility clicks should not leave a focused button stealing Space.
 for(const btn of document.querySelectorAll('#utility button,#pausePanel button'))
   btn.addEventListener('pointerdown',e=>e.preventDefault());

@@ -1,6 +1,6 @@
 "use strict";
 // ============================ ORIGINAL MIDI-STYLE AUDIO ============================
-let AC=null, muted=false, P50=null, P25=null, musicBus=null, musicVolume=0.65;
+let AC=null, muted=preferences.muted, P50=null, P25=null, musicBus=null, musicVolume=preferences.musicVolume;
 function audio(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); }
   if(!musicBus){musicBus=AC.createGain();musicBus.gain.value=musicVolume;musicBus.connect(AC.destination);}
   Music.syncState();
@@ -97,6 +97,33 @@ const SONGS={
   { bass:[38,0,38,0,45,0,38,0,40,0,40,0,47,0,43,0], lead:[62,0,0,65,0,0,69,0,67,0,0,64,0,0,62,0], harm:[50,0,0,0,53,0,0,0,52,0,0,0,55,0,0,0], drums:['k',0,'h',0,'s',0,'h',0,'k',0,'h',0,'s',0,'h','h'] },
  ]},
 };
+// Four passes form a longer arc: melody, bell response, quiet interlude,
+// then a return. Rests and voicing changes retain each zone's original harmony.
+function musicArrangement(song,step){
+  const st=step%16, bar=Math.floor(step/16)%song.seq.length;
+  const phrase=Math.floor(step/(song.seq.length*16))%4, B=song.seq[bar];
+  const quiet=phrase===2;
+  let lead=B.lead[st];
+  if((phrase===1&&st%4!==0)||(quiet&&st%8!==0)||(phrase===3&&bar===song.seq.length-1&&st>=12))lead=0;
+  if(quiet&&lead)lead-=12;
+  let drum=B.drums[st];
+  if((quiet&&drum!=='k')||(phrase===1&&drum==='h'))drum=0;
+  return {lead,harm:B.harm[st],bass:B.bass[st],drum,phrase,quiet,
+    kind:quiet?'harmony':phrase===1?'bell':'lead',bar,st};
+}
+function scheduleMusicStep(sg,step,at){
+  const stepDur=60/sg.bpm/4;
+     const a=musicArrangement(sg,step), st=a.st, B=sg.seq[a.bar];
+     if(a.lead)musicVoice(a.lead,stepDur*(a.quiet?5.5:2.8),a.kind,a.phrase===1?0.020:0.025,at);
+     if(a.harm)musicVoice(a.harm,stepDur*3.8,'harmony',a.quiet?0.021:0.015,at);
+     if(a.bass)musicVoice(a.bass,stepDur*3.2,'bass',a.quiet?0.035:0.043,at);
+     if((a.phrase===0||a.phrase===3)&&(st&7)===6){
+       let an=0;
+       for(let back=0;back<8&&!an;back++) an=B.harm[(st-back+16)%16];
+       if(an) musicVoice(an+12,stepDur*1.8,'bell',0.007,at);
+     }
+     musicDrum(a.drum,at);
+}
 const Music={ state:null, step:0, nextT:0, timer:null,
  set(s){ if(!AC)audio(); if(!AC)return; this.stop(); this.state=s; this.step=0; this.nextT=AC.currentTime+0.06;
    if(s==='victory'||s==='over'){ this.jingle(s); this.state=null; return; }
@@ -112,15 +139,20 @@ const Music={ state:null, step:0, nextT:0, timer:null,
  },
  suspend(){ return this.syncState(); }, resume(){ return this.syncState(); },
  toggleMute(){
-   muted=!muted; this.syncState();
-   const button=document.getElementById('muteButton');
-   button.textContent=muted?'Unmute':'Mute'; button.setAttribute('aria-pressed',String(muted));
+   muted=!muted; preferences.muted=muted; savePreferences(); this.syncState(); this.updateControls();
  },
  setVolume(value){
    if(!Number.isFinite(value))return;
    musicVolume=Math.max(0,Math.min(1,value));
    if(musicBus)musicBus.gain.setTargetAtTime(musicVolume,AC.currentTime,0.025);
+   preferences.musicVolume=musicVolume; savePreferences(); this.updateControls();
+ },
+ updateControls(){
    document.getElementById('musicVolumeValue').textContent=Math.round(musicVolume*100)+'%';
+   document.getElementById('musicVolume').value=String(Math.round(musicVolume*100));
+   document.getElementById('reducedEffects').checked=preferences.reducedEffects;
+   const button=document.getElementById('muteButton');
+   button.textContent=muted?'Unmute':'Mute'; button.setAttribute('aria-pressed',String(muted));
  },
  jingle(s){ const t=AC.currentTime+0.05;
    if(s==='victory'){ const ns=[72,76,79,84,79,84,88];
@@ -134,16 +166,9 @@ const Music={ state:null, step:0, nextT:0, timer:null,
    const stepDur=60/sg.bpm/4;
    if(this.nextT<ac.currentTime)this.nextT=ac.currentTime+0.02;
    while(this.nextT<ac.currentTime+0.18){
-     const bar=(this.step/16|0)%sg.seq.length, st=this.step%16, B=sg.seq[bar];
-     if(B.lead[st]) musicVoice(B.lead[st],stepDur*2.6,'lead',0.028,this.nextT);
-     if(B.harm[st]) musicVoice(B.harm[st],stepDur*3.4,'harmony',0.017,this.nextT);
-     if(B.bass[st]) musicVoice(B.bass[st],stepDur*3.0,'bass',0.047,this.nextT);
-     if((st&7)===6){
-       let an=0;
-       for(let back=0;back<8&&!an;back++) an=B.harm[(st-back+16)%16];
-       if(an) musicVoice(an+12,stepDur*1.8,'bell',0.009,this.nextT);
-     }
-     musicDrum(B.drums[st],this.nextT);
-   this.step=(this.step+1)%(sg.seq.length*16); this.nextT+=stepDur;
+     scheduleMusicStep(sg,this.step,this.nextT);
+   this.step=(this.step+1)%(sg.seq.length*16*4); this.nextT+=stepDur;
    } } };
 function stageMusicKey(){ return 'stage'+((game.stage||0)+1); }
+
+Music.updateControls();

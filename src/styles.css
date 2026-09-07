@@ -77,3 +77,12 @@
     #ov .blink{font-size:11px;margin-top:12px}
     #ov::after{font-size:8px;letter-spacing:1px;bottom:12px}
   }
+
+  #touch .dash.cooldown{border-color:#628087;color:#bfd1d6}
+  .pause-card .effects-option{align-items:center;justify-content:flex-start;gap:12px;min-height:44px;margin-top:12px;font-size:13px;cursor:pointer}
+  .pause-card .effects-option input{width:20px;height:20px;flex-shrink:0;margin:0}
+  .reduced-effects .blink{animation:none!important}
+  .reduced-effects #touch,.reduced-effects #msg,.reduced-effects #bossHud,.reduced-effects #bossHud .fill{transition:none}
+
+  body{background:radial-gradient(ellipse at center,#25494b 0,#11272b 52%,#030b14 100%)}
+  #gameCanvas{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 70px #0008}

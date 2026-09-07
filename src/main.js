@@ -12,18 +12,26 @@ function setPaused(value){
   document.getElementById('pausePanel').hidden=!paused;
   document.getElementById('pauseButton').textContent=paused?'Resume':'Pause';
 }
+// Feedback uses the same 60 Hz clock as gameplay, never the display frame rate.
+function updateFeedback(){
+  if(game.msgT>0)game.msgT--;
+  if(game.warnT>0)game.warnT--;
+  if(game.introT>0&&game.state==='play')game.introT--;
+  if(game.flash>0)game.flash--;
+  if(game.shake>0){game.shake*=0.85;if(game.shake<0.3)game.shake=0;}
+}
 function stepGame(){
+  if(game.state==='play'&&pauseTap){pauseTap=false;setPaused(!paused);}
+  if(paused)return;
   game.t++;
+  updateFeedback();
   if(game.state==='title'){ if(K.start()){ game.state='play'; audio(); Music.set(stageMusicKey()); resetStage(); rebuildWorld(); } }
   else if(game.state==='play'){
-    if(pauseTap){
-      setPaused(!paused);
-    }
-    if(!paused){
+    {
       updatePlayer(); updateEnemies(); updateBridge(); updateBoss(); updateBullets(); updatePickups(); updateCam(); updateParts();
       if(game.comboT>0){ game.comboT--; if(game.comboT===0)game.combo=0; }
       if(score>=next1up){ lives++; next1up+=50000; sfx('1up'); flashMsg('1UP!'); }
-    } else pauseTap=false;
+    }
   }
   else if(game.state==='victory'){ updateParts();
     if(game.t%14===0){ const fx=camX+30+Math.random()*196, fy=36+Math.random()*90;
@@ -34,7 +42,7 @@ function stepGame(){
       game.finished++;
       game.stage=(game.stage+1)%STAGE_META.length;
       if(game.stage===0)game.campaignClears++;
-      lives=3; score=0; next1up=20000; game.state='play'; resetStage(); Music.set(stageMusicKey()); rebuildWorld();
+      lives=Math.max(3,lives); game.state='play'; resetStage(); Music.set(stageMusicKey()); rebuildWorld();
     } }
   else if(game.state==='gameover'){ updateParts();
     if(K.start()){ lives=3; score=0; next1up=20000; game.state='play'; resetStage(); Music.set(stageMusicKey()); rebuildWorld(); } }
@@ -68,7 +76,7 @@ function applyStageLook(){
   if(sunHalo){ sunHalo.material.color.setHex(l.sunGlow); sunHalo.material.opacity=game.stage===2?.42:.32; }
   if(cloudMat){ cloudMat.color.setHex(l.cloud); cloudMat.opacity=l.cloudA; }
 }
-function rebuildWorld(){ applyStageLook(); buildTerrain(); buildWater(); buildBG(); buildStageDressing(); buildAtmosphere(); buildBoss(); }
+function rebuildWorld(){ applyStageLook(); buildTerrain(); buildWater(); buildBG(); buildStageDressing(); buildAtmosphere(); buildBoss(); buildCheckpointMarkers(); }
 resetStage(); rebuildWorld();
 tick();
 // expose test API on window (module scope is isolated)
