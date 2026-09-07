@@ -42,6 +42,8 @@ cd contra-run
 
 Then open or double-click `index.html` in your browser. The checked-in Three.js bundle means the game does not require a local server for normal play.
 
+On phones and tablets, landscape orientation is recommended. The page uses the device viewport and safe-area insets so touch controls stay clear of notches and home indicators.
+
 ## Controls
 
 | Action | Keyboard | Touch |
