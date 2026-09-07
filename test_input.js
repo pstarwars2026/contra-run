@@ -50,7 +50,11 @@ const { GAME_URL } = require('./test_helpers');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   s = await state();
   check('blur clears held controls', !s.held.right && s.sources === 0, JSON.stringify(s));
+  check('blur automatically pauses gameplay', s.paused);
   await page.keyboard.up('ArrowRight');
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.keyboard.press('p');
+  await page.waitForFunction(() => !window.__api.paused);
 
   await page.keyboard.down('ArrowLeft');
   await page.evaluate(() => {
@@ -61,6 +65,9 @@ const { GAME_URL } = require('./test_helpers');
   s = await state();
   check('visibility loss clears held controls', !s.held.left && s.sources === 0, JSON.stringify(s));
   await page.keyboard.up('ArrowLeft');
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.keyboard.press('p');
+  await page.waitForFunction(() => !window.__api.paused);
 
   await page.keyboard.down('ArrowLeft');
   await page.keyboard.down('ArrowRight');

@@ -1,15 +1,16 @@
 "use strict";
-// ============================ AUDIO v3 (unchanged engine) ============================
-let AC=null, muted=false, P50=null, P25=null;
+// ============================ ORIGINAL MIDI-STYLE AUDIO ============================
+let AC=null, muted=false, P50=null, P25=null, musicBus=null, musicVolume=0.65;
 function audio(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); }
-  if(AC.state==='suspended')AC.resume();
+  if(!musicBus){musicBus=AC.createGain();musicBus.gain.value=musicVolume;musicBus.connect(AC.destination);}
+  Music.syncState();
   if(!P50){ const mk=d=>{ const n=32, re=new Float32Array(n), im=new Float32Array(n);
       for(let i=1;i<n;i++) re[i]=(2/(i*Math.PI))*Math.sin(i*Math.PI*d);
       return AC.createPeriodicWave(re,im); };
     P50=mk(0.5); P25=mk(0.25); }
   return AC; }
 function midi(n){ return 440*Math.pow(2,(n-69)/12); }
-function tone(freq,dur,wave,vol,slide,at,vib){ if(muted||!AC)return;
+function tone(freq,dur,wave,vol,slide,at,vib,output){ if(muted||paused||focusLost||!AC)return;
   const t=at||AC.currentTime; const o=AC.createOscillator(), g=AC.createGain();
   if(wave&&wave.real){ o.setPeriodicWave(wave); } else o.type=wave||'square';
   o.frequency.setValueAtTime(freq,t);
@@ -17,14 +18,14 @@ function tone(freq,dur,wave,vol,slide,at,vib){ if(muted||!AC)return;
   if(vib){ const v=AC.createOscillator(), vg=AC.createGain(); v.frequency.value=vib; vg.gain.value=freq*0.011;
     v.connect(vg); vg.connect(o.frequency); v.start(t); v.stop(t+dur); }
   g.gain.setValueAtTime(vol||0.08,t); g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
-  o.connect(g); g.connect(AC.destination); o.start(); o.stop(t+dur+0.03); }
-function noise(dur,vol,low,at){ if(muted||!AC)return;
+  o.connect(g); g.connect(output||AC.destination); o.start(t); o.stop(t+dur+0.03); }
+function noise(dur,vol,low,at,output){ if(muted||paused||focusLost||!AC)return;
   const t=at||AC.currentTime, n=(AC.sampleRate*dur)|0; const b=AC.createBuffer(1,n,AC.sampleRate); const d=b.getChannelData(0);
   for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
   const s=AC.createBufferSource(); s.buffer=b; const g=AC.createGain(); g.gain.value=vol||0.15;
   const f=AC.createBiquadFilter(); f.type=low?'lowpass':'highpass'; f.frequency.value=low?500:1400;
-  s.connect(f); f.connect(g); g.connect(AC.destination); s.start(t); }
-function musicVoice(note,dur,kind,vol,at){ if(muted||!AC||!note)return;
+  s.connect(f); f.connect(g); g.connect(output||AC.destination); s.start(t); }
+function musicVoice(note,dur,kind,vol,at){ if(muted||paused||focusLost||!AC||!note)return;
   const t=at||AC.currentTime, end=t+dur, out=AC.createGain(), filter=AC.createBiquadFilter();
   const profile={
     lead:{attack:0.018,cut:3100,voices:[['triangle',0,0.72],['sine',12,0.16]]},
@@ -37,7 +38,7 @@ function musicVoice(note,dur,kind,vol,at){ if(muted||!AC||!note)return;
   out.gain.linearRampToValueAtTime(vol,t+profile.attack);
   out.gain.setValueAtTime(vol*0.72,Math.max(t+profile.attack,end-0.06));
   out.gain.exponentialRampToValueAtTime(0.0003,end);
-  filter.connect(out); out.connect(AC.destination);
+  filter.connect(out); out.connect(musicBus);
   for(const [wave,semi,level] of profile.voices){
     const o=AC.createOscillator(), mix=AC.createGain();
     o.type=wave; o.frequency.setValueAtTime(midi(note+semi),t); mix.gain.value=level;
@@ -45,9 +46,9 @@ function musicVoice(note,dur,kind,vol,at){ if(muted||!AC||!note)return;
   }
 }
 function musicDrum(kind,at){ if(muted||!AC)return;
-  if(kind==='k'){ tone(92,0.075,'sine',0.075,46,at); }
-  else if(kind==='s'){ noise(0.055,0.032,false,at); tone(190,0.035,'triangle',0.018,125,at); }
-  else if(kind==='h'){ noise(0.014,0.008,false,at); }
+  if(kind==='k'){ tone(92,0.075,'sine',0.075,46,at,0,musicBus); }
+  else if(kind==='s'){ noise(0.055,0.032,false,at,musicBus); tone(190,0.035,'triangle',0.018,125,at,0,musicBus); }
+  else if(kind==='h'){ noise(0.014,0.008,false,at,musicBus); }
 }
 function sfx(name){ if(muted)return; switch(name){
   case 'shot': tone(950,0.05,P50,0.045,260); noise(0.02,0.05); break;
@@ -101,8 +102,26 @@ const Music={ state:null, step:0, nextT:0, timer:null,
    if(s==='victory'||s==='over'){ this.jingle(s); this.state=null; return; }
    this.timer=setInterval(()=>this.pump(),25); this.pump(); },
  stop(){ if(this.timer){clearInterval(this.timer); this.timer=null;} this.state=null; },
- suspend(){ if(AC)AC.suspend(); }, resume(){ if(AC)AC.resume(); },
- toggleMute(){ muted=!muted; if(muted){ if(AC)AC.suspend(); } else if(AC)AC.resume(); },
+ syncState(){
+   if(!AC)return;
+   // Pause, focus loss and mute are independent reasons to stay silent.
+   // Always issue the desired operation: an earlier async suspend may still
+   // be pending even while AudioContext.state reports 'running'.
+   const silent=paused||muted||focusLost;
+   return AC[silent?'suspend':'resume']().catch(err=>console.warn('Audio state:',err.message));
+ },
+ suspend(){ return this.syncState(); }, resume(){ return this.syncState(); },
+ toggleMute(){
+   muted=!muted; this.syncState();
+   const button=document.getElementById('muteButton');
+   button.textContent=muted?'Unmute':'Mute'; button.setAttribute('aria-pressed',String(muted));
+ },
+ setVolume(value){
+   if(!Number.isFinite(value))return;
+   musicVolume=Math.max(0,Math.min(1,value));
+   if(musicBus)musicBus.gain.setTargetAtTime(musicVolume,AC.currentTime,0.025);
+   document.getElementById('musicVolumeValue').textContent=Math.round(musicVolume*100)+'%';
+ },
  jingle(s){ const t=AC.currentTime+0.05;
    if(s==='victory'){ const ns=[72,76,79,84,79,84,88];
      ns.forEach((n,i)=>{ musicVoice(n,0.18,'bell',0.04,t+i*0.12); musicVoice(n-12,0.2,'harmony',0.025,t+i*0.12); });
@@ -110,9 +129,10 @@ const Music={ state:null, step:0, nextT:0, timer:null,
    } else { const ns=[64,60,57,52];
      ns.forEach((n,i)=>musicVoice(n,0.32,'harmony',0.032,t+i*0.24));
      musicVoice(40,1.35,'bass',0.045,t+ns.length*0.24); } },
- pump(){ const ac=AC; if(!ac||!this.state||muted)return;
+ pump(){ const ac=AC; if(!ac||!this.state||muted||paused||focusLost||ac.state!=='running')return;
    const sg=SONGS[this.state]; if(!sg)return;
    const stepDur=60/sg.bpm/4;
+   if(this.nextT<ac.currentTime)this.nextT=ac.currentTime+0.02;
    while(this.nextT<ac.currentTime+0.18){
      const bar=(this.step/16|0)%sg.seq.length, st=this.step%16, B=sg.seq[bar];
      if(B.lead[st]) musicVoice(B.lead[st],stepDur*2.6,'lead',0.028,this.nextT);

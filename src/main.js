@@ -1,13 +1,23 @@
 "use strict";
 // ============================ MAIN LOOP ============================
 let acc=0, lastT=performance.now();
+function setPaused(value){
+  if(game.state!=='play')return;
+  paused=!!value;
+  clearInputSources();
+  player.jumpHeld=player.dashHeld=false;
+  player.jumpBuffer=0;
+  acc=0; lastT=performance.now();
+  if(paused)Music.suspend();else Music.resume();
+  document.getElementById('pausePanel').hidden=!paused;
+  document.getElementById('pauseButton').textContent=paused?'Resume':'Pause';
+}
 function stepGame(){
   game.t++;
   if(game.state==='title'){ if(K.start()){ game.state='play'; audio(); Music.set(stageMusicKey()); resetStage(); rebuildWorld(); } }
   else if(game.state==='play'){
     if(pauseTap){
-      pauseTap=false; paused=!paused; clearInputSources();
-      if(paused)Music.suspend(); else Music.resume();
+      setPaused(!paused);
     }
     if(!paused){
       updatePlayer(); updateEnemies(); updateBridge(); updateBoss(); updateBullets(); updatePickups(); updateCam(); updateParts();
@@ -68,6 +78,7 @@ window.__api={ get game(){return game;}, get player(){return player;}, get boss(
   get camX(){return camX;}, get lives(){return lives;}, set lives(v){lives=v;}, get score(){return score;}, set score(v){score=v;},
   get GROUND(){return GROUND;}, get ROWS(){return ROWS;}, get enemyVisualCount(){return enemyVisuals.children.length;},
   get musicState(){return Music.state;}, get muted(){return muted;}, get paused(){return paused;}, stageMusicKey, tileAt, isSolid, bossPodHit,
+  get audioState(){return AC?.state||'uninitialized';}, get musicVolume(){return musicVolume;},
   get inputState(){return {...held};}, get inputSourceCount(){return inputSources.size;}, get inputBuffer(){return {...actionBuffer};},
   start:()=>{ startTap=true; },
   pressKey:k=>{ setInputSource('api:'+k,controlFor(k,''),true,true); },

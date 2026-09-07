@@ -822,6 +822,7 @@ function sync3D(){
 const hudEl=document.getElementById('hud'), msgEl=document.getElementById('msg'), ovEl=document.getElementById('ov'), warnEl=document.getElementById('warn');
 const bossHudEl=document.getElementById('bossHud'), bossFillEl=document.getElementById('bossFill'), bossPctEl=document.getElementById('bossPct'), bossLabelEl=document.getElementById('bossLabel');
 function syncHUD(){
+  document.getElementById('pauseButton').disabled=game.state!=='play';
   let lv=''; for(let i=0;i<Math.min(lives,9);i++) lv+='▲';
   const wl={rifle:'RIFLE',M:'MACHINE GUN',S:'SPREAD',L:'LASER',F:'FIREBALL'}[player?player.weapon:'rifle'];
   const combo=game.combo>=2?(' &nbsp; <span style="color:#8ff">COMBO ×'+game.combo+'</span>'):'';

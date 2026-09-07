@@ -44,9 +44,27 @@ const { GAME_URL } = require('./test_helpers');
   check('zone 3 gameplay theme', s.stage === 2 && s.music === 'stage3', s);
 
   await page.keyboard.press('p');
-  await page.waitForTimeout(80);
+  await page.waitForFunction(() => window.__api.paused && window.__api.audioState === 'suspended');
   check('pause state', await page.evaluate(() => window.__api.paused), true);
+  await page.keyboard.press('m');
+  await page.keyboard.press('m');
+  await page.waitForTimeout(100);
+  s = await page.evaluate(() => ({paused: window.__api.paused, muted: window.__api.muted, audio: window.__api.audioState}));
+  check('unmuting while paused stays silent', s.paused && !s.muted && s.audio === 'suspended', s);
+
+  await page.locator('#musicVolume').evaluate(el => { el.value='0'; el.dispatchEvent(new Event('input', {bubbles:true})); });
+  check('music can be silenced independently', await page.evaluate(() => window.__api.musicVolume === 0 && !window.__api.muted), true);
+  await page.keyboard.press('m');
   await page.keyboard.press('p');
+  await page.waitForFunction(() => !window.__api.paused);
+  await page.waitForTimeout(100);
+  s = await page.evaluate(() => ({paused: window.__api.paused, muted: window.__api.muted, audio: window.__api.audioState}));
+  check('resuming while muted stays silent', !s.paused && s.muted && s.audio === 'suspended', s);
+  await page.keyboard.press('m');
+  await page.waitForFunction(() => window.__api.audioState === 'running');
+  await page.waitForTimeout(180);
+  s = await page.evaluate(() => ({level: musicBus.gain.value, muted, audio: AC.state}));
+  check('music-off leaves effects output running', s.level < .01 && !s.muted && s.audio === 'running', s);
 
   await page.keyboard.press('m');
   await page.waitForTimeout(80);

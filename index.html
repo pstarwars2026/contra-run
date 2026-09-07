@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,12 +14,27 @@
 <div id="ov">
   <h1>CONTRARUN</h1>
   <h2>Operation Cobalt // 2.5D Assault</h2>
-  <div class="ctl">ARROWS / WASD — MOVE + 8-WAY AIM &nbsp;•&nbsp; Z / J — FIRE<br>
+  <div class="ctl">ARROWS / WASD — MOVE + 8-WAY AIM &nbsp;•&nbsp; CTRL / Z / J — FIRE<br>
   X / K / SPACE — JUMP &nbsp;•&nbsp; SHIFT / C — COMBAT DASH &nbsp;•&nbsp; DOWN — PRONE / DROP-THROUGH<br>
-  DOWN + FIRE — AIM LOW &nbsp;•&nbsp; P — PAUSE &nbsp;•&nbsp; M — MUTE<br>
+  DOWN + FIRE — AIM LOW &nbsp;•&nbsp; P / ESC — PAUSE &nbsp;•&nbsp; M — MUTE<br>
   MOUSE / TOUCH BUTTONS CAN BE HELD TOGETHER WITH THE KEYBOARD</div>
   <div class="blink">PRESS ENTER / TAP TO DEPLOY</div>
 </div>
+<div id="utility" aria-label="Game options">
+  <button id="pauseButton" type="button" disabled>Pause</button>
+  <button id="muteButton" type="button" aria-pressed="false">Mute</button>
+</div>
+<section id="pausePanel" aria-label="Game paused" hidden>
+  <div class="pause-card">
+    <h2>Take a breather</h2>
+    <p>Game paused. Your position is safe.</p>
+    <label for="musicVolume">Music <output id="musicVolumeValue">65%</output></label>
+    <input id="musicVolume" type="range" min="0" max="100" value="65" step="5">
+    <p class="hint">Turn music down to keep just the game sounds.</p>
+    <button id="resumeButton" type="button">Resume game</button>
+    <p class="hint">P or Esc also resumes. Release and press controls again.</p>
+  </div>
+</section>
 <div id="warn">WARNING // HEAVY CONTACT</div>
 <div id="bossHud" aria-hidden="true"><div class="label"><span id="bossLabel">SHIELD NODES</span><span id="bossPct">100%</span></div><div class="track"><div class="fill" id="bossFill"></div></div></div>
 <div id="touch" aria-label="On-screen controls">
