@@ -70,13 +70,29 @@ let lives=3, score=0, next1up=20000;
 const game={state:'title', t:0, shake:0, flash:0, msg:null, msgT:0, finished:0, introT:0, warnT:0, stage:0, campaignClears:0, combo:0, comboT:0};
 let player, bullets=[], ebullets=[], enemies=[], pickups=[], parts=[], boss=null;
 let camX=0, runnerTimer=0, bridgeState=null, lastCp=24, paused=false;
+// Progress anchors are resolved to safe ground separately for each zone.
 const CPS=[24,272,896,1136,1568,1808];
+let checkpointSpawns=[];
+function buildCheckpointSpawns(){
+  checkpointSpawns=[];
+  for(const anchor of CPS){
+    for(let col=Math.floor(anchor/16);col<MAPW-1;col++){
+      // A full tile of margin on both sides prevents cliff-edge respawns.
+      const safe=[col-1,col,col+1].every(c=>map[c]&&['G','D','S'].includes(map[c][GROUND])&&
+        map[c][GROUND-1]==='.'&&map[c][GROUND-2]==='.');
+      if(!safe)continue;
+      const x=col*16+8, previous=checkpointSpawns[checkpointSpawns.length-1];
+      if(!previous||x-previous.x>=64)checkpointSpawns.push({x,y:GROUND*16-0.01});
+      break;
+    }
+  }
+}
 function flashMsg(m){ game.msg=m; game.msgT=120; }
 function newPlayer(x,y){ return {x,y,vx:0,vy:0,onGround:false,prone:false,face:1,aim:'right',
   fireCd:0, jumping:false, jumpT:0, dead:false, deadT:0, invuln:110, weapon:'rifle',
   runT:0, dropT:0, shootT:0, dashCd:0, dashT:0, dashHeld:false,
   jumpHeld:false, jumpBuffer:0, coyote:0, w:10, h:20, inWater:false}; }
-function resetStage(){ buildLevel(); bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];
+function resetStage(){ buildLevel(); buildCheckpointSpawns(); bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];
   clearEnemyVisuals();
   for(const e of ents){
     if(e.type==='sniper')enemies.push({type:'sniper',x:e.x,y:e.y,hp:2+game.finished,t:0,cool:60+((e.x/16)%3)*30,w:12,h:16,alive:true,tele:0});
@@ -141,7 +157,7 @@ function aimDir(){
   const L=K.left(),R=K.right(),U=K.up(),D=K.down();
   if(p.prone) return f>0?'right':'left';
   if(!p.onGround){
-    if(U&&f>0)return 'ur'; if(U&&f<0)return 'ul';
+    if(U&&R)return 'ur'; if(U&&L)return 'ul';
     if(D&&L)return 'dl'; if(D&&R)return 'dr';
     if(D&&!L&&!R)return 'down';
     if(U&&!L&&!R)return 'up';
@@ -189,13 +205,17 @@ function updatePlayer(){
   if(p.dashCd>0)p.dashCd--;
   if(p.dead){ p.deadT++; p.vy+=TUNE.grav; p.y+=p.vy; p.x+=p.vx;
     if(p.deadT>TUNE.respawnFrames){ if(lives>0){ lives--;
-        player=newPlayer(lastCp,8); player.invuln=TUNE.respawnInvuln;
-        let r=0; while(r<ROWS&&!isSolid(tileAt(player.x,r*16+1)))r++;
-        if(r<ROWS)player.y=r*16-0.01; else player.y=GROUND*16-0.01;
+        const spawn=checkpointSpawns.find(c=>c.x===lastCp)||checkpointSpawns[0];
+        player=newPlayer(spawn.x,spawn.y); player.invuln=TUNE.respawnInvuln;
+        player.onGround=true;
         camX=Math.max(0,player.x-60);
       } else { game.state='gameover'; Music.set('over'); } }
     return; }
-  for(const c of CPS) if(p.x>c+8&&lastCp<c)lastCp=c;
+  if(p.onGround&&!p.inWater){
+    let secured=false;
+    for(const c of checkpointSpawns)if(p.x>=c.x&&lastCp<c.x){lastCp=c.x;secured=true;}
+    if(secured)flashMsg('CHECKPOINT SECURED');
+  }
   const jumpNow=K.jump();
   const bufferedJump=actionBuffer.jump>0;
   const jumpPressed=bufferedJump||(jumpNow&&!p.jumpHeld);
@@ -241,7 +261,7 @@ function updatePlayer(){
     return;
   }
   const dashNow=K.dash();
-  const dashPressed=(dashNow&&!p.dashHeld)||(!dashNow&&actionBuffer.dash>0);
+  const dashPressed=actionBuffer.dash>0||(dashNow&&!p.dashHeld);
   if(dashPressed&&p.dashCd<=0){
     actionBuffer.dash=0;
     p.dashT=10; p.dashCd=54; p.invuln=Math.max(p.invuln,12); p.vx=p.face*TUNE.dashSpeed;
@@ -421,7 +441,7 @@ function updateBullets(){
   }
   for(const b of ebullets){ b.t++; b.x+=b.vx; b.y+=b.vy;
     if(isSolid(tileAt(b.x,b.y)))b.dead=true;
-    if(b.x<camX-44||b.x>camX+330||b.y>ROWS*16)b.dead=true;
+    if(b.x<camX-44||b.x>camX+330||b.y<-10||b.y>ROWS*16||b.t>=600)b.dead=true;
   }
   bullets=bullets.filter(b=>!b.dead); ebullets=ebullets.filter(b=>!b.dead);
   for(const b of bullets){
@@ -448,7 +468,7 @@ function updateBullets(){
         break;
       } }
     const bs=boss;
-    if(bs&&bs.active&&bs.dying===0){
+    if(!b.dead&&bs&&bs.active&&bs.dying===0){
       for(const pod of bs.pods){ if(pod.dead)continue;
         const gx=bs.x+pod.ox, gy=GROUND*16-14+pod.oy;
         if(Math.abs(b.x-gx)<10&&Math.abs(b.y-gy)<10){ b.dead=true; bossPodHit(pod,b.dmg); break; } }
@@ -486,13 +506,14 @@ function updateBullets(){
   if(!player.dead){
     const hb={x:player.x,y:player.y-(player.prone?4:10),w:player.prone?12:8,h:player.prone?8:16};
     for(const b of ebullets){
-      if(Math.abs(b.x-hb.x)<hb.w/2+2&&Math.abs(b.y-hb.y)<hb.h/2+2){
+      if(!b.dead&&Math.abs(b.x-hb.x)<hb.w/2+2&&Math.abs(b.y-hb.y)<hb.h/2+2){
         b.dead=true; killPlayer(); break; } }
     for(const e of enemies){ if(e.alive&&e.type==='runner'&&!e.flyback&&player.dashT<=0){
       if(Math.abs(e.x-player.x)<10&&Math.abs(e.y-player.y)<14){ killPlayer(); break; } } }
   }
   for(const e of enemies){ if(e.flyback){ e.flyT++; e.x+=e.vx; e.vy+=0.2; e.y+=e.vy; if(e.flyT>90)e.alive=false; } }
   enemies=enemies.filter(e=>e.alive);
+  bullets=bullets.filter(b=>!b.dead); ebullets=ebullets.filter(b=>!b.dead);
 }
 function updatePickups(){
   for(const k of pickups){ k.t++;
