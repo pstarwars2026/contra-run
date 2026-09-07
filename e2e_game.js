@@ -1,6 +1,6 @@
 // 2.5D e2e suite — campaign, traversal, combat, boss, pause
 const { chromium } = require('playwright');
-const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
+const { GAME_URL } = require('./test_helpers');
 
 (async () => {
   const browser = await chromium.launch();
@@ -15,7 +15,7 @@ const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
   let pass = 0, fail = 0;
   const check = (name, cond, extra) => { if (cond) { pass++; console.log(`PASS ${name} ${extra || ''}`); } else { fail++; console.log(`FAIL ${name} ${extra || ''}`); } };
 
-  await page.goto(URL);
+  await page.goto(GAME_URL);
   await page.waitForTimeout(1600);
   const boot = await A(`(() => { const a = window.__api; return { three: !!window.__THREE, state: a.game.state, mapw: a.MAPW, lives: a.lives }; })()`);
   check('boot', boot.three && boot.state === 'title' && boot.mapw === 132, JSON.stringify(boot));
