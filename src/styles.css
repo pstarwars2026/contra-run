@@ -17,16 +17,17 @@
   #bossHud .track{height:8px;border:1px solid rgba(225,240,255,.28);border-radius:999px;overflow:hidden;background:rgba(3,8,15,.78);box-shadow:0 4px 16px rgba(0,0,0,.34),inset 0 1px 2px rgba(0,0,0,.8)}
   #bossHud .fill{height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#ff4a31,#ffb52d 58%,#fff0a0);box-shadow:0 0 14px rgba(255,92,40,.75);transition:transform .12s linear}
   #fx{position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(ellipse at center,transparent 48%,rgba(0,8,12,.1) 72%,rgba(0,4,8,.42) 100%),repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);mix-blend-mode:multiply}
-  #touch{display:none;position:fixed;inset:auto 0 max(14px,env(safe-area-inset-bottom)) 0;z-index:5;pointer-events:none;padding:0 max(20px,env(safe-area-inset-right)) 0 max(20px,env(safe-area-inset-left));justify-content:space-between;align-items:end;user-select:none;-webkit-user-select:none}
+  #touch{display:flex;position:fixed;inset:auto 0 max(14px,env(safe-area-inset-bottom)) 0;z-index:5;pointer-events:none;padding:0 max(20px,env(safe-area-inset-right)) 0 max(20px,env(safe-area-inset-left));justify-content:space-between;align-items:end;user-select:none;-webkit-user-select:none}
   #touch .pad,#touch .actions{pointer-events:auto;display:grid;gap:7px}
   #touch .pad{grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px)}
   #touch .actions{grid-template-columns:58px 68px 68px;align-items:end}
-  #touch button{touch-action:none;-webkit-tap-highlight-color:transparent;border:1px solid rgba(220,244,255,.25);background:linear-gradient(180deg,rgba(12,30,38,.75),rgba(4,14,21,.72));color:#ecf8ff;border-radius:15px;min-width:52px;min-height:52px;font:900 18px ui-monospace,SFMono-Regular,Menlo,monospace;box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.09);backdrop-filter:blur(6px)}
+  #touch button{touch-action:none;-webkit-tap-highlight-color:transparent;cursor:pointer;border:1px solid rgba(220,244,255,.25);background:linear-gradient(180deg,rgba(12,30,38,.75),rgba(4,14,21,.72));color:#ecf8ff;border-radius:15px;min-width:52px;min-height:52px;font:900 18px ui-monospace,SFMono-Regular,Menlo,monospace;box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.09);backdrop-filter:blur(6px)}
   #touch button:active{transform:translateY(1px);background:rgba(44,105,104,.78)}
   #touch .fire{min-width:68px;min-height:68px;border-radius:50%;color:#ffe57b;border-color:rgba(255,218,84,.35)}
   #touch .jump{min-width:68px;min-height:68px;border-radius:50%;color:#ffb8a8;border-color:rgba(255,93,62,.4)}
   #touch .dash{min-width:58px;min-height:58px;border-radius:50%;align-self:end;color:#9ef6ff;border-color:rgba(92,227,255,.45);font-size:11px;letter-spacing:1px}
   #touch .up{grid-column:2}.left{grid-column:1}.down{grid-column:2}.right{grid-column:3}
-  @media (pointer:coarse),(max-width:760px){#touch{display:flex}#ov .ctl{font-size:10px;line-height:1.75}.desktop-only{display:none}}
+  @media (pointer:fine) and (min-width:761px){#touch{opacity:.58;transition:opacity .16s}#touch:hover{opacity:.96}}
+  @media (pointer:coarse),(max-width:760px){#touch{opacity:1}#ov .ctl{font-size:10px;line-height:1.75}.desktop-only{display:none}}
   @keyframes bl{50%{opacity:0}}
   canvas{display:block}

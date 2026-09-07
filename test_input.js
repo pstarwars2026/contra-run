@@ -3,7 +3,7 @@ const { GAME_URL } = require('./test_helpers');
 
 (async () => {
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: { width: 960, height: 640 }, hasTouch: true });
+  const context = await browser.newContext({ viewport: { width: 960, height: 640 } });
   const page = await context.newPage();
   const errors = [];
   let pass = 0;
@@ -28,6 +28,9 @@ const { GAME_URL } = require('./test_helpers');
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__api.game.state === 'play');
   await page.evaluate(() => { window.__api.player.invuln = 99999; });
+
+  const controlsVisible = await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display === 'flex');
+  check('on-screen controls are available to desktop mouse', controlsVisible);
 
   await page.keyboard.down('ArrowRight');
   let s = await state();
@@ -76,6 +79,33 @@ const { GAME_URL } = require('./test_helpers');
   await page.keyboard.up('Shift');
   s = await state();
   check('modifier release clears actions', !s.held.fire && !s.held.dash && s.sources === 0, JSON.stringify(s));
+
+  const fire = page.locator('#touch .fire');
+  await fire.hover();
+  await page.mouse.down();
+  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('x');
+  s = await state();
+  check('mouse fire combines with keyboard move + jump', s.held.fire && s.held.right && s.held.jump && s.sources === 3, JSON.stringify(s));
+  await page.keyboard.up('x');
+  await page.keyboard.up('ArrowRight');
+  s = await state();
+  check('releasing keyboard leaves mouse fire held', s.held.fire && !s.held.right && !s.held.jump && s.sources === 1, JSON.stringify(s));
+  await page.mouse.up();
+  s = await state();
+  check('mouse release clears its own fire source', !s.held.fire && s.sources === 0, JSON.stringify(s));
+
+  await page.keyboard.down('ArrowRight');
+  await page.locator('#touch .right').hover();
+  await page.mouse.down();
+  s = await state();
+  check('keyboard and mouse can own the same direction together', s.held.right && s.sources === 2, JSON.stringify(s));
+  await page.mouse.up();
+  s = await state();
+  check('mouse release preserves keyboard ownership', s.held.right && s.sources === 1, JSON.stringify(s));
+  await page.keyboard.up('ArrowRight');
+  s = await state();
+  check('final keyboard release clears shared direction', !s.held.right && s.sources === 0, JSON.stringify(s));
 
   await page.evaluate(() => {
     const a = window.__api, p = a.player;

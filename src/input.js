@@ -88,10 +88,12 @@ const K={
   dash:()=>held.dash,
   start:()=>{ const t=startTap; startTap=false; return t; },
 };
-// Touch is an input adapter only; gameplay consumes the same key-state API as
-// keyboard input, which keeps the core rules portable to a later native host.
-function releaseTouchPointer(pointerId){
-  const prefix=`touch:${pointerId}:`;
+// Pointer controls (mouse, pen, and touch) are input adapters only; gameplay
+// consumes the same key-state API as keyboard input. Each physical source owns
+// its logical control independently, so holding FIRE with the mouse while
+// moving/jumping on the keyboard cannot cancel either source.
+function releasePointer(pointerId){
+  const prefix=`pointer:${pointerId}:`;
   for(const [source,control] of [...inputSources]){
     if(source.startsWith(prefix)) setInputSource(source,control,false,false);
   }
@@ -99,17 +101,17 @@ function releaseTouchPointer(pointerId){
 for(const btn of document.querySelectorAll('#touch button[data-key]')){
   const key=btn.dataset.key;
   btn.addEventListener('pointerdown',e=>{
-    e.preventDefault(); setInputSource(`touch:${e.pointerId}:${key}`,controlFor(key,''),true,true);
+    e.preventDefault(); setInputSource(`pointer:${e.pointerId}:${key}`,controlFor(key,''),true,true);
     try{ btn.setPointerCapture?.(e.pointerId); }catch(_err){}
     if(!AC)audio();
   });
-  const release=e=>{ e.preventDefault(); releaseTouchPointer(e.pointerId); };
+  const release=e=>{ e.preventDefault(); releasePointer(e.pointerId); };
   btn.addEventListener('pointerup',release);
   btn.addEventListener('pointercancel',release);
 }
-window.addEventListener('pointerup',e=>releaseTouchPointer(e.pointerId),true);
-window.addEventListener('pointercancel',e=>releaseTouchPointer(e.pointerId),true);
-document.addEventListener('lostpointercapture',e=>releaseTouchPointer(e.pointerId),true);
+window.addEventListener('pointerup',e=>releasePointer(e.pointerId),true);
+window.addEventListener('pointercancel',e=>releasePointer(e.pointerId),true);
+document.addEventListener('lostpointercapture',e=>releasePointer(e.pointerId),true);
 document.getElementById('ov').addEventListener('pointerdown',e=>{
   if(e.target.closest('.ctl'))return;
   startTap=true; if(!AC)audio();
