@@ -11,6 +11,10 @@ const { GAME_URL } = require('./test_helpers');
 
   await page.goto(GAME_URL);
   await page.waitForFunction(() => window.__api?.game?.state === 'title', null, { timeout: 10000 });
+  const viewportMeta = await page.locator('meta[name="viewport"]').getAttribute('content');
+  if (!viewportMeta || !viewportMeta.includes('width=device-width') || !viewportMeta.includes('viewport-fit=cover')) {
+    throw new Error(`mobile viewport configuration missing: ${viewportMeta}`);
+  }
   const touchVisible = await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
   if (!touchVisible) throw new Error('touch controls are not visible in a touch context');
 
