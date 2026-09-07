@@ -42,11 +42,12 @@ function tick(){
 }
 function applyStageLook(){
   const looks=[
-    {fog:0x77abc1,density:.00135,sky:0x86c8ea,skyTint:0xffffff,cloud:0xffffff,cloudA:.88,sunDisc:0xfff4c0,sunGlow:0xffe8a0,hemi:0xd4efff,ground:0x1d2e1b,sun:0xffe8bd,rim:0x5a8dff,exposure:1.28,hemiI:1.10,sunI:1.65,rimI:.38,bloom:.70,radius:.42,threshold:.78},
-    {fog:0x648e99,density:.00185,sky:0x78b9c7,skyTint:0xcfe8e9,cloud:0xe2eff0,cloudA:.66,sunDisc:0xffe0a8,sunGlow:0xf4c783,hemi:0xc8e2e2,ground:0x1e322d,sun:0xffd6a0,rim:0x53a7bb,exposure:1.13,hemiI:.98,sunI:1.28,rimI:.62,bloom:.74,radius:.52,threshold:.71},
-    {fog:0x5b6975,density:.00165,sky:0x718291,skyTint:0xb6c4cd,cloud:0xc4c9ce,cloudA:.46,sunDisc:0xffcf92,sunGlow:0xff984f,hemi:0xcbd6dc,ground:0x232927,sun:0xffc88c,rim:0x6f8fce,exposure:1.06,hemiI:.84,sunI:1.16,rimI:.80,bloom:.92,radius:.58,threshold:.61},
+    {fog:0x77abc1,density:.00120,sky:0x86c8ea,skyTint:0xffffff,cloud:0xffffff,cloudA:.88,sunDisc:0xfff4c0,sunGlow:0xffe8a0,hemi:0xd4efff,ground:0x1d2e1b,sun:0xffe8bd,rim:0x5a8dff,exposure:1.22,hemiI:1.10,sunI:1.65,rimI:.38,bloom:.64,radius:.40,threshold:.80},
+    {fog:0x648e99,density:.00185,sky:0x78b9c7,skyTint:0xfff4df,cloud:0xe2eff0,cloudA:.66,sunDisc:0xffe0a8,sunGlow:0xf4c783,hemi:0xc8e2e2,ground:0x1e322d,sun:0xffd6a0,rim:0x53a7bb,exposure:1.13,hemiI:.98,sunI:1.28,rimI:.62,bloom:.74,radius:.52,threshold:.71},
+    {fog:0x5b6975,density:.00165,sky:0x718291,skyTint:0xe8d8ce,cloud:0xc4c9ce,cloudA:.46,sunDisc:0xffcf92,sunGlow:0xff984f,hemi:0xcbd6dc,ground:0x232927,sun:0xffc88c,rim:0x6f8fce,exposure:1.06,hemiI:.84,sunI:1.16,rimI:.80,bloom:.92,radius:.58,threshold:.61},
   ];
   const l=looks[game.stage]||looks[0];
+  paintSkyGradient(game.stage);
   scene.background.setHex(l.sky); scene.fog.color.setHex(l.fog); scene.fog.density=l.density;
   hemi.color.setHex(l.hemi); hemi.groundColor.setHex(l.ground); hemi.intensity=l.hemiI;
   sun.color.setHex(l.sun); sun.intensity=l.sunI; rim.color.setHex(l.rim); rim.intensity=l.rimI;
