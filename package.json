@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "playwright": "^1.63.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "scripts": {
+    "test": "node e2e_game.js && node test_campaign.js && node test_audio.js",
+    "test:e2e": "node e2e_game.js",
+    "test:campaign": "node test_campaign.js",
+    "test:audio": "node test_audio.js"
+  }
+}
