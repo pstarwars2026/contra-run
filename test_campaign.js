@@ -10,20 +10,26 @@ const { GAME_URL } = require('./test_helpers');
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   await page.goto(GAME_URL);
-  await page.waitForTimeout(900);
+  await page.waitForFunction(() => window.__api?.game?.state === 'title', null, { timeout: 10000 });
   const touchVisible = await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
   if (!touchVisible) throw new Error('touch controls are not visible in a touch context');
 
   await page.locator('#ov').tap({ position: { x: 500, y: 500 } });
-  await page.waitForTimeout(450);
+  await page.waitForFunction(() => window.__api.game.state === 'play', null, { timeout: 5000 });
   if (await page.evaluate(() => window.__api.game.state) !== 'play') throw new Error('tap-to-start failed');
 
   const x0 = await page.evaluate(() => window.__api.player.x);
   await page.locator('#touch .right').dispatchEvent('pointerdown', { pointerId: 41, pointerType: 'touch' });
-  await page.waitForTimeout(600);
-  await page.locator('#touch .right').dispatchEvent('pointerup', { pointerId: 41, pointerType: 'touch' });
+  let moved = true;
+  try {
+    await page.waitForFunction(startX => window.__api.player.x > startX + 20, x0, { timeout: 5000 });
+  } catch (_err) {
+    moved = false;
+  } finally {
+    await page.locator('#touch .right').dispatchEvent('pointerup', { pointerId: 41, pointerType: 'touch' });
+  }
   const x1 = await page.evaluate(() => window.__api.player.x);
-  if (!(x1 > x0 + 20)) throw new Error(`touch movement failed: ${x0} -> ${x1}`);
+  if (!moved || !(x1 > x0 + 20)) throw new Error(`touch movement failed: ${x0} -> ${x1}`);
 
   const signatures = [];
   for (let expectedStage = 0; expectedStage < 3; expectedStage++) {
