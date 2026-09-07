@@ -24,11 +24,11 @@ The game intentionally stays lightweight: there is no account, backend, ad SDK, 
 
 ## Highlights
 
-- Three distinct campaign zones with different terrain, atmosphere, enemies, and music.
-- Keyboard and touch controls using one shared input-state system.
+- Three distinct campaign zones with different terrain, atmosphere, enemies, and original MIDI-note music.
+- Keyboard, mouse, and touch controls using one shared multi-source input-state system.
 - Buffered jump, fire, and dash inputs so very short taps are not lost between simulation frames.
 - Weapon pickups, enemy variants, destructible bridge sections, swimming, checkpoints, bosses, and New Game+.
-- Procedural Web Audio music and sound effects; no recorded soundtrack files are required.
+- Original MIDI-note arrangements rendered through soft Web Audio voices, plus procedural sound effects; no recorded soundtrack files are required.
 - Portable Playwright regression coverage for controls, traversal, combat, campaign progression, touch, and audio state.
 
 ## Play
@@ -42,11 +42,11 @@ cd contra-run
 
 Then open or double-click `index.html` in your browser. The checked-in Three.js bundle means the game does not require a local server for normal play.
 
-On phones and tablets, landscape orientation is recommended. The page uses the device viewport and safe-area insets so touch controls stay clear of notches and home indicators.
+The on-screen direction, Fire, Jump, and Dash buttons also work with a desktop mouse. You can hold any on-screen button while using the keyboard at the same time—for example, hold Fire with the mouse while moving and jumping with the keyboard. On phones and tablets, landscape orientation is recommended. The page uses the device viewport and safe-area insets so controls stay clear of notches and home indicators.
 
 ## Controls
 
-| Action | Keyboard | Touch |
+| Action | Keyboard | Mouse / Touch |
 |---|---|---|
 | Move | Arrow keys or WASD | Direction pad |
 | Fire | Z, J, or Control | Fire button |
@@ -76,7 +76,7 @@ npm run build:three
 
 | Command | Coverage |
 |---|---|
-| `npm run test:input` | Key lifecycle, blur/visibility recovery, modifiers, rapid taps, pause, touch cancellation |
+| `npm run test:input` | Key lifecycle, mixed mouse+keyboard holds, blur/visibility recovery, modifiers, rapid taps, pause, pointer cancellation |
 | `npm run test:e2e` | Movement, combat, pickups, bridge, swimming, boss flow, victory, New Game+ |
 | `npm run test:campaign` | Touch start/movement and progression through all three campaign zones |
 | `npm run test:audio` | Title, stage, boss, pause, mute, and music-state transitions |
@@ -93,7 +93,7 @@ index.html
 src/
   ├─ styles.css    presentation + touch controls
   ├─ core.js       Three.js aliases + gameplay tuning
-  ├─ input.js      keyboard/touch input lifecycle
+  ├─ input.js      keyboard/mouse/touch input lifecycle
   ├─ audio.js      Web Audio music + sound effects
   ├─ gameplay.js   level, player, enemies, weapons, boss
   ├─ render.js     Three.js world + render synchronization
@@ -118,7 +118,8 @@ ContraRun tracks physical input sources separately from logical controls. A cont
 - clears active controls on blur, page hide, and tab visibility loss;
 - releases a keyboard control even if a browser reports a different key identity on `keyup`;
 - clears active movement when pause state changes;
-- catches global touch `pointerup`, `pointercancel`, and lost pointer capture;
+- keeps keyboard, mouse, pen, and touch sources independent so mixed controls can be held together;
+- catches global pointer `pointerup`, `pointercancel`, and lost pointer capture;
 - buffers short jump, fire, and dash edges for several simulation frames.
 
 These behaviors have dedicated regression tests because they are easy to break while changing gameplay code.
