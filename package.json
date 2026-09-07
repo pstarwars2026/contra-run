@@ -6,7 +6,8 @@
     "esbuild": "^0.28.2"
   },
   "scripts": {
-    "test": "node e2e_game.js && node test_campaign.js && node test_audio.js",
+    "test": "node test_input.js && node e2e_game.js && node test_campaign.js && node test_audio.js",
+    "test:input": "node test_input.js",
     "test:e2e": "node e2e_game.js",
     "test:campaign": "node test_campaign.js",
     "test:audio": "node test_audio.js"

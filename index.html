@@ -116,6 +116,27 @@ function setInputSource(source,control,down,queueEdge=true){
     inputSources.delete(source); heldCounts[old]=Math.max(0,heldCounts[old]-1); held[old]=heldCounts[old]>0;
   }
 }
+function keyboardSource(e){
+  const code=e.code||'';
+  if(code)return 'kbd:'+code;
+  const key=(e.key||'').length===1?(e.key||'').toLowerCase():(e.key||'');
+  return key?'kbd:key:'+key:'';
+}
+function releaseKeyboardEvent(e){
+  const control=controlFor(e.key,e.code);
+  if(!control)return;
+  const source=keyboardSource(e);
+  if(source&&inputSources.has(source)){
+    setInputSource(source,control,false,false);
+    return;
+  }
+  // Browsers can report a different key identity on release after focus,
+  // modifier, or layout changes. Fall back to releasing keyboard sources for
+  // the same logical control so a missed identity cannot leave a key stuck.
+  for(const [id,mapped] of [...inputSources]){
+    if(id.startsWith('kbd:')&&mapped===control) setInputSource(id,control,false,false);
+  }
+}
 function clearInputSources(){
   inputSources.clear();
   for(const k of Object.keys(held)){ held[k]=false; heldCounts[k]=0; }
@@ -124,7 +145,7 @@ function clearInputSources(){
 window.addEventListener('keydown',e=>{
   const control=controlFor(e.key,e.code);
   if(control)e.preventDefault();
-  setInputSource('kbd:'+(e.code||e.key),control,true,!e.repeat);
+  setInputSource(keyboardSource(e),control,true,!e.repeat);
   const k=e.key.length===1?e.key.toLowerCase():e.key;
   if(k==='Enter'&&!e.repeat)startTap=true;
   if(k==='p'&&!e.repeat)pauseTap=true;
@@ -136,8 +157,9 @@ window.addEventListener('keydown',e=>{
     if(seq.every((v,i)=>konamiBuf[i]===v)){ lives=30; sfx('1up'); flashMsg('30 LIVES!'); konamiBuf=[]; }
   }
 });
-window.addEventListener('keyup',e=>{ setInputSource('kbd:'+(e.code||e.key),controlFor(e.key,e.code),false,false); });
+window.addEventListener('keyup',releaseKeyboardEvent);
 window.addEventListener('blur',clearInputSources);
+window.addEventListener('pagehide',clearInputSources);
 document.addEventListener('visibilitychange',()=>{ if(document.hidden)clearInputSources(); });
 const K={
   left:()=>held.left,
@@ -151,6 +173,12 @@ const K={
 };
 // Touch is an input adapter only; gameplay consumes the same key-state API as
 // keyboard input, which keeps the core rules portable to a later native host.
+function releaseTouchPointer(pointerId){
+  const prefix=`touch:${pointerId}:`;
+  for(const [source,control] of [...inputSources]){
+    if(source.startsWith(prefix)) setInputSource(source,control,false,false);
+  }
+}
 for(const btn of document.querySelectorAll('#touch button[data-key]')){
   const key=btn.dataset.key;
   btn.addEventListener('pointerdown',e=>{
@@ -158,10 +186,13 @@ for(const btn of document.querySelectorAll('#touch button[data-key]')){
     try{ btn.setPointerCapture?.(e.pointerId); }catch(_err){}
     if(!AC)audio();
   });
-  const release=e=>{ e.preventDefault(); setInputSource(`touch:${e.pointerId}:${key}`,controlFor(key,''),false,false); };
+  const release=e=>{ e.preventDefault(); releaseTouchPointer(e.pointerId); };
   btn.addEventListener('pointerup',release);
   btn.addEventListener('pointercancel',release);
 }
+window.addEventListener('pointerup',e=>releaseTouchPointer(e.pointerId),true);
+window.addEventListener('pointercancel',e=>releaseTouchPointer(e.pointerId),true);
+document.addEventListener('lostpointercapture',e=>releaseTouchPointer(e.pointerId),true);
 document.getElementById('ov').addEventListener('pointerdown',e=>{
   if(e.target.closest('.ctl'))return;
   startTap=true; if(!AC)audio();
@@ -1642,7 +1673,10 @@ function stepGame(){
   game.t++;
   if(game.state==='title'){ if(K.start()){ game.state='play'; audio(); Music.set(stageMusicKey()); resetStage(); rebuildWorld(); } }
   else if(game.state==='play'){
-    if(pauseTap){ pauseTap=false; paused=!paused; if(paused)Music.suspend(); else Music.resume(); }
+    if(pauseTap){
+      pauseTap=false; paused=!paused; clearInputSources();
+      if(paused)Music.suspend(); else Music.resume();
+    }
     if(!paused){
       updatePlayer(); updateEnemies(); updateBridge(); updateBoss(); updateBullets(); updatePickups(); updateCam(); updateParts();
       if(game.comboT>0){ game.comboT--; if(game.comboT===0)game.combo=0; }
@@ -1701,6 +1735,7 @@ window.__api={ get game(){return game;}, get player(){return player;}, get boss(
   get camX(){return camX;}, get lives(){return lives;}, set lives(v){lives=v;}, get score(){return score;}, set score(v){score=v;},
   get GROUND(){return GROUND;}, get ROWS(){return ROWS;}, get enemyVisualCount(){return enemyVisuals.children.length;},
   get musicState(){return Music.state;}, get muted(){return muted;}, get paused(){return paused;}, stageMusicKey, tileAt, isSolid, bossPodHit,
+  get inputState(){return {...held};}, get inputSourceCount(){return inputSources.size;}, get inputBuffer(){return {...actionBuffer};},
   start:()=>{ startTap=true; },
   pressKey:k=>{ setInputSource('api:'+k,controlFor(k,''),true,true); },
   releaseKey:k=>{ setInputSource('api:'+k,controlFor(k,''),false,false); } };

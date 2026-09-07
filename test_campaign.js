@@ -1,6 +1,5 @@
 const { chromium } = require('playwright');
-
-const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
+const { GAME_URL } = require('./test_helpers');
 
 (async () => {
   const browser = await chromium.launch();
@@ -10,7 +9,7 @@ const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
-  await page.goto(URL);
+  await page.goto(GAME_URL);
   await page.waitForTimeout(900);
   const touchVisible = await page.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
   if (!touchVisible) throw new Error('touch controls are not visible in a touch context');

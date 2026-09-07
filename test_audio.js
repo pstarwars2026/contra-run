@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
+const { GAME_URL } = require('./test_helpers');
 
 (async () => {
   const browser = await chromium.launch();
@@ -12,7 +12,7 @@ const URL = 'file:///Volumes/Backup_SSD/iOS%20apps/ContraRun/index.html';
     console.log(`PASS ${name}`, JSON.stringify(value));
   };
 
-  await page.goto(URL);
+  await page.goto(GAME_URL);
   await page.waitForTimeout(500);
   await page.keyboard.press('Shift');
   await page.waitForTimeout(120);
