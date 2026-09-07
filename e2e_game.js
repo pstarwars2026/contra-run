@@ -24,11 +24,22 @@ const { GAME_URL } = require('./test_helpers');
   const started = await A(`window.__api.game.state`);
   check('start->play', started === 'play', started);
 
-  // Give the software-WebGL CI path enough wall time to advance past the
-  // camera follow threshold even when render frames are slower than 60 Hz.
-  await key('ArrowRight', 1800);
+  // Wait for the gameplay state we care about instead of assuming a fixed
+  // amount of wall time maps to the same number of simulation frames on CI.
+  await A(`window.__api.pressKey("ArrowRight")`);
+  let reachedCameraFollow = true;
+  try {
+    await page.waitForFunction(() => {
+      const a = window.__api;
+      return a.player.x > 100 && a.camX > 0 && a.player.onGround;
+    }, null, { timeout: 7000 });
+  } catch (_err) {
+    reachedCameraFollow = false;
+  } finally {
+    await A(`window.__api.releaseKey("ArrowRight")`);
+  }
   const mv = await A(`(() => { const a = window.__api; return { x: a.player.x, camX: a.camX, og: a.player.onGround }; })()`);
-  check('run right', mv.x > 100 && mv.camX > 0 && mv.og, JSON.stringify(mv));
+  check('run right', reachedCameraFollow && mv.x > 100 && mv.camX > 0 && mv.og, JSON.stringify(mv));
   // stay invulnerable during scripted runs so enemy fire doesn't skew assertions
   await A(`window.__api.player.invuln = 99999`);
 
